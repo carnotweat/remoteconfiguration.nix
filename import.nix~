@@ -1,0 +1,6 @@
+      ./haskellpubkey.nix
+      ./overlay.nix
+      ./require.nix
+      ./emlibs.nix
+      ./hlsnix
+     
