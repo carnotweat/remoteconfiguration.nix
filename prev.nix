@@ -1,4 +1,5 @@
 { config, lib, pkgs, ... }:
+###
 # abstract-structure
 #with
 #let
@@ -8,20 +9,30 @@
 #service enable
 #user-enable
 #version
-# let
-#   lib = pkgs.stdenv.lib;
-#   workUser = "ec2-user";
-#   workHosts = [ "*.example.net"
-#                "192.168.1.*"
-#               ];
-# in 
+###
+let
+#  lib = pkgs.stdenv.lib;
+  workUser = "builder";
+  workHosts = [ "*.nix-community.org"
+               "192.168.1.*"
+              ];
+in
 {
-   #  programs.ssh = {
-  #   enable = true;
-  #   forwardAgent = false;
-  #   hashKnownHosts = true;
-  #   controlMaster = "auto";
-  #   controlPath = "~/.ssh/master-%r@%h:%p";
+    services.openssh.extraConfig = ''
+        Host remote_host
+             ProxyCommand ssh -i /root/.ssh/my_key -W remote_host:1221 ubuntu@jump_host
+             IdentityFile /root/.ssh/my_key
+             User ubuntu
+  '';
+
+#{
+# {
+#     services.ssh = {
+#     enable = true;
+#     forwardAgent = false;
+#     hashKnownHosts = true;
+    #controlMaster = "auto";
+    #controlPath = "/home/xameer/.ssh/build01.nix-community.org";
 
   #   matchBlocks = {
   #     "foo-host" = {
@@ -48,7 +59,8 @@
   #       certificateFile = "~/.ssh/id_ecdsa-cert.pub";
   #       identitiesOnly = true;
   #     };
-  # };
+#  };
+
   imports =	      	     
     [ 
       ./hardware-configuration.nix
@@ -87,20 +99,20 @@ services.udev.extraRules = ''
 #   };
 # }
 
-  # services.openssh = {
-  #   enable = true;
-  #   hostKeys = [
-  #     {
-  #       path = "/persist/ssh/ssh_host_ed25519_key";
-  #       type = "ed25519";
-  #     }
-  #     {
-  #       path = "/persist/ssh/ssh_host_rsa_key";
-  #       type = "rsa";
-  #       bits = 4096;
-  #     }
-  #   ];
-  # };
+  services.openssh = {
+    enable = true;
+    hostKeys = [
+      # {
+      #   path = "/persist/ssh/ssh_host_ed25519_key";
+      #   type = "ed25519";
+      # }
+      {
+        path = "/home/xameer/.ssh/build01.nix-community.org";
+        type = "rsa";
+        bits = 4096;
+      }
+    ];
+  };
 
 
 
@@ -218,34 +230,42 @@ environment.systemPackages = with pkgs; [
   # Define a user account. 
   # Don't forget to set a password with ‘passwd’ using the root account if you don't use the init# ialPassword field.
   
-  users.users.florent = {
+  # users.users.florent = {
+  #   isNormalUser = true;
+  #   initialPassword = "code";  # Define the user initial password
+  #   extraGroups = [  "adbusers" ]; # wheel to enable ‘sudo’ for the user.
+  # };
+  users.users.xameer = {
     isNormalUser = true;
-    initialPassword = "secret";  # Define the user initial password
+    initialPassword = "node";  # Define the user initial password
     extraGroups = [ "wheel" "adbusers" ]; # wheel to enable ‘sudo’ for the user.
   };
-
-  # users.users.openssh = {
-  #   isSystemUser = true;
-  #   #initialPassword = "secret";  # Define the user initial password
-  #   extraGroups = [ "wheel" "openssh" ]; # wheel to enable ‘sudo’ for the user.
-  # };
+  users.users.openssh.group = "openssh";
+  users.groups.openssh = {};
+  users.users.openssh = {
+    isSystemUser = true;
+    #initialPassword = "secret";  # Define the user initial password
+    #extraGroups = [ "wheel" "openssh" ]; # wheel to enable ‘sudo’ for the user.
+  };
 
   
-# users.users.root.openssh.authorizedKeys.keys = [
-#   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCTabxMjmHQunw2TL9DivIjK72zIjqtqbM4t9xAyJ34FPrtIMm7H4GO8VAmx6YjPr9KAQKot4cu12Kyt7OgBZ6S8j2G12twhTi8TUolM+JqxOWcav5DSGL04ecyqRoQ/WFoak5y4c8n9ZPS8/oKyig2t+lInNWPOHB75BKlK7YScJwv+kNBEmOd+Z/Fns7aT72rjS1a4REx/9cStZZIgoCEuAhoXfblMBEgwhh1EgP+7bxFNoZN2LcO6TYzsEVcF8hockXU0yQipzY5a3t8L7CvOcErP8nOsfaOHprSpJgpeAJKhv4DwYNp09M79v7Zbb/hVvM41RyM65tc5kPXLbt+/3oGfJeVjU35BJUCqTz9p+JK3fHz0uWGpNTBYftwUsu/gAmo9RbFU6G7Apx4KBKAzIN56DIvNw/M44d/j3sXnNREJfOb0whH88seoWUrNyKNHjcgy6n1PJnLFWF0BPdIbtXYQxaCVlsPuxbS+xy6b/CEcCoKUbRTXYsmCIhUZaDhNxdWDBZNXgthWDX+Vg3CeWjZqGMBIYqxrxrhgzUt/0X59oc3K2v6EPJe9JQRTK1OeTbmiTRBpIbdL1Gxbw8yse6rTnASM5SZ6VpOrgepwl9DjgvZn7sOiq9cTc66sfXHrFYTGVQw8oWVLVEN9D05qPlNGhNwSG7ptkSHAwOsHQ== jasitis@gmail.com"
-#   ];
+users.users.xameer.openssh.authorizedKeys.keys = [
+  "ssh-rsa whatever  xameer@nixos"
+  ];
   
 #  programs.adb.enable = true;
   # serve over ssh
   	nix.buildMachines = [ {
 	 hostName = "builder";
-	 system = "x86_64-linux";
+	 #system = "x86_64-linux";
+   system = "aarch64-linux";
 	 # if the builder supports building for multiple architectures, 
 	 # replace the previous line by, e.g.,
-	 # systems = ["x86_64-linux" "aarch64-linux"];
+	 systems = ["x86_64-linux" "aarch64-linux"];
 	 maxJobs = 1;
 	 speedFactor = 2;
-	 supportedFeatures = [ "nixos-test" "benchmark" "big-parallel" "kvm" ];
+	 #supportedFeatures = [ "nixos-test" "benchmark" "big-parallel" "kvm" ];
+   supportedFeatures = [ "{}" ];
 	 mandatoryFeatures = [ ];
 	}] ;
 	nix.distributedBuilds = true;
